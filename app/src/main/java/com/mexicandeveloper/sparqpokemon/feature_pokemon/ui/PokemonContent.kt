@@ -15,11 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvi.PokemonState
+import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvvm.PokemonUIState
 
 @Composable
 fun PokemonContent(
-    modifier: Modifier, state: PokemonState, listState: LazyListState, onRetry: () -> Unit
+    modifier: Modifier, state: PokemonUIState, listState: LazyListState, onRetry: () -> Unit
 ) {
 
     when {
@@ -44,11 +44,9 @@ fun PokemonContent(
 
 @Composable
 fun LoadingContent(modifier: Modifier) {
-
     Box(
         modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center
     ) {
-
         CircularProgressIndicator()
     }
 }

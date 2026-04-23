@@ -9,7 +9,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.mexicandeveloper.sparqpokemon.feature_pokemon.PokemonViewModel
-import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvi.PokemonIntent
 
 @Composable
 fun PokemonScreen(
@@ -17,7 +16,7 @@ fun PokemonScreen(
     modifier: Modifier
 ) {
 
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.uiState.collectAsState()
     val listState =
         rememberLazyListState()
 
@@ -27,7 +26,6 @@ fun PokemonScreen(
     ) {
 
         snapshotFlow {
-
             listState.layoutInfo
                 .visibleItemsInfo
                 .lastOrNull()
@@ -41,17 +39,9 @@ fun PokemonScreen(
                 !state.loadingMore &&
                 !state.endReached
             ) {
-
-                viewModel.sendIntent(
-                    PokemonIntent.LoadNextPage
-                )
+                viewModel.loadNextPage()
             }
         }
-    }
-    LaunchedEffect(Unit) {
-        viewModel.sendIntent(
-            PokemonIntent.LoadPokemon
-        )
     }
 
     PokemonContent(
@@ -59,9 +49,7 @@ fun PokemonScreen(
         state = state,
         listState = listState,
         onRetry = {
-            viewModel.sendIntent(
-                PokemonIntent.Retry
-            )
+            viewModel.retry()
         }
     )
 }

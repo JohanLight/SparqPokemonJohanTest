@@ -3,23 +3,12 @@ package com.mexicandeveloper.sparqpokemon.feature_pokemon
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mexicandeveloper.sparqpokemon.domain.usecase.GetPokemonUseCase
-import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvi.PokemonIntent
-import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvi.PokemonPartialState
-import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvi.PokemonReducer.reduce
-import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvi.PokemonState
+import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvvm.PokemonUIState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -29,102 +18,86 @@ class PokemonViewModel @Inject constructor(
     private val getPokemon: GetPokemonUseCase
 ) : ViewModel() {
 
-    private val intents =
-        MutableSharedFlow<PokemonIntent>()
-
-    private val _state =
-        MutableStateFlow(
-            PokemonState()
-        )
-
-    val state =
-        _state.asStateFlow()
+    private val _uiState = MutableStateFlow(PokemonUIState())
+    val uiState = _uiState.asStateFlow()
 
     init {
-        processIntents()
+        loadPokemon()
     }
 
-    fun sendIntent(
-        intent: PokemonIntent
-    ) {
+    fun loadPokemon() {
         viewModelScope.launch {
-            intents.emit(intent)
+            getPokemon(0)
+                .onStart {
+                    _uiState.update {
+                        it.copy(
+                            loading = true,
+                            error = null
+                        )
+                    }
+                }
+                .catch { e ->
+                    _uiState.update {
+                        it.copy(
+                            loading = false,
+                            error = e.message
+                        )
+                    }
+                }
+                .collect { pokemon ->
+                    _uiState.update {
+                        it.copy(
+                            loading = false,
+                            pokemon = pokemon,
+                            offset = pokemon.size
+                        )
+                    }
+                }
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun processIntents() {
-
-        intents
-            .flatMapLatest { intent ->
-                when (intent) {
-                    PokemonIntent.LoadPokemon ->
-                        loadPokemonFlow()
-
-                    PokemonIntent.LoadNextPage ->
-                        loadNextPageFlow()
-
-                    PokemonIntent.Retry ->
-                        loadPokemonFlow()
-                }
-            }
-            .onEach { change ->
-
-                _state.update {
-                    reduce(
-                        old = it,
-                        change = change
-                    )
-                }
-
-            }
-            .launchIn(viewModelScope)
-
-
-    }
-
-    private fun loadPokemonFlow():
-            Flow<PokemonPartialState> {
-
-        return getPokemon(0)
-            .map { pokemon ->
-
-                PokemonPartialState.Success(
-                    pokemon
-                ) as PokemonPartialState
-            }
-            .onStart {
-
-                emit(
-                    PokemonPartialState.Loading
-                )
-            }
-            .catch { throwable ->
-
-                emit(
-                    PokemonPartialState.Error(
-                        throwable.message
-                            ?: "Unknown error"
-                    )
-                )
-            }
-    }
-
-    private fun loadNextPageFlow(): Flow<PokemonPartialState> {
+    fun loadNextPage() {
         if (
-            _state.value.loadingMore ||
-            _state.value.endReached
-        ) return emptyFlow()
-        return getPokemon(
-            _state.value.offset
-        ).map {
-            PokemonPartialState.Append(it) as PokemonPartialState
-        }.onStart {
-            emit(PokemonPartialState.LoadingMore)
-        }.catch { throwable ->
-            emit(PokemonPartialState.Error(throwable.message ?: "Error Loading More"))
-
+            _uiState.value.loadingMore ||
+            _uiState.value.endReached
+        ) return
+        viewModelScope.launch {
+            getPokemon(
+                _uiState.value.offset
+            )
+                .onStart {
+                    _uiState.update {
+                        it.copy(
+                            loadingMore = true
+                        )
+                    }
+                }
+                .catch {
+                    _uiState.update {oldState->
+                        oldState.copy(
+                            loadingMore = false,
+                            error = it.message ?: "unknown Error"
+                        )
+                    }
+                }
+                .collect { newItems ->
+                    _uiState.update { oldState->
+                        oldState.copy(
+                            loadingMore = false,
+                            pokemon =
+                                oldState.pokemon + newItems,
+                            offset =
+                                oldState.offset +
+                                        newItems.size,
+                            endReached =
+                                newItems.size < 10
+                        )
+                    }
+                }
         }
+    }
 
+    fun retry() {
+        loadPokemon()
     }
 }

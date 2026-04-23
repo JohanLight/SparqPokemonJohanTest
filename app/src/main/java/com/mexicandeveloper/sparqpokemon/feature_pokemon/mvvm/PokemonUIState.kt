@@ -1,8 +1,8 @@
-package com.mexicandeveloper.sparqpokemon.feature_pokemon.mvi
+package com.mexicandeveloper.sparqpokemon.feature_pokemon.mvvm
 
 import com.mexicandeveloper.sparqpokemon.domain.model.Pokemon
 
-data class PokemonState(
+data class PokemonUIState(
     val loading: Boolean = false,
     val loadingMore: Boolean = false,
     val pokemon: List<Pokemon> = emptyList(),

@@ -17,13 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mexicandeveloper.sparqpokemon.domain.model.Pokemon
-import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvi.PokemonState
+import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvvm.PokemonUIState
 
 @Composable
 fun PokemonList(
     modifier: Modifier,
     listState: LazyListState,
-    state: PokemonState
+    state: PokemonUIState
 ) {
 
     LazyColumn(
