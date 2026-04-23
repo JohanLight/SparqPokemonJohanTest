@@ -22,9 +22,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SparqPokemonTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    PokemonScreen(modifier = Modifier.padding(innerPadding))
-                }
+                PokemonScreen(modifier = Modifier.fillMaxSize())
             }
         }
     }

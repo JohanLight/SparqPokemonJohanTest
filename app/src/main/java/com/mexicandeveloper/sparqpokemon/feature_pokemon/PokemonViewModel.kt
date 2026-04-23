@@ -4,100 +4,91 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mexicandeveloper.sparqpokemon.domain.usecase.GetPokemonUseCase
 import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvvm.PokemonUIState
+import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvvm.UiEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class PokemonViewModel @Inject constructor(
+class PokemonViewModel
+@Inject constructor(
     private val getPokemon: GetPokemonUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PokemonUIState())
+    private val _uiState = MutableStateFlow<PokemonUIState>(PokemonUIState.Loading)
     val uiState = _uiState.asStateFlow()
+    private val _events = MutableSharedFlow<UiEvent>()
+    val events = _events.asSharedFlow()
 
     init {
         loadPokemon()
     }
 
     fun loadPokemon() {
+
         viewModelScope.launch {
-            getPokemon(0)
-                .onStart {
-                    _uiState.update {
-                        it.copy(
-                            loading = true,
-                            error = null
-                        )
-                    }
-                }
-                .catch { e ->
-                    _uiState.update {
-                        it.copy(
-                            loading = false,
-                            error = e.message
-                        )
-                    }
-                }
-                .collect { pokemon ->
-                    _uiState.update {
-                        it.copy(
-                            loading = false,
-                            pokemon = pokemon,
-                            offset = pokemon.size
-                        )
-                    }
+
+            _uiState.value = PokemonUIState.Loading
+            getPokemon(0).catch { e ->
+
+                    _uiState.value = PokemonUIState.Error(
+                        e.message ?: "Failed"
+                    )
+                }.collect { pokemon ->
+                    _uiState.value = PokemonUIState.Success(
+                        pokemon = pokemon
+                    )
                 }
         }
     }
 
     fun loadNextPage() {
-        if (
-            _uiState.value.loadingMore ||
-            _uiState.value.endReached
-        ) return
+
+        val current = _uiState.value
+        if (current !is PokemonUIState.Success) return
+        if (current.loadingMore || current.endReached) return
+
         viewModelScope.launch {
-            getPokemon(
-                _uiState.value.offset
+
+            _uiState.value = current.copy(
+                loadingMore = true
             )
-                .onStart {
-                    _uiState.update {
-                        it.copy(
-                            loadingMore = true
+
+            getPokemon(
+                current.pokemon.size
+            ).catch {
+                    _uiState.value = current.copy(
+                        loadingMore = false
+                    )
+                    emitEvent(
+                        UiEvent.ShowSnackbar(
+                            "Pagination failed"
                         )
-                    }
-                }
-                .catch {
-                    _uiState.update {oldState->
-                        oldState.copy(
-                            loadingMore = false,
-                            error = it.message ?: "unknown Error"
-                        )
-                    }
-                }
-                .collect { newItems ->
-                    _uiState.update { oldState->
-                        oldState.copy(
-                            loadingMore = false,
-                            pokemon =
-                                oldState.pokemon + newItems,
-                            offset =
-                                oldState.offset +
-                                        newItems.size,
-                            endReached =
-                                newItems.size < 10
-                        )
-                    }
+                    )
+                }.collect { newItems ->
+                    _uiState.value = current.copy(
+                        pokemon = current.pokemon + newItems,
+                        loadingMore = false,
+                        endReached = newItems.size < 10
+                    )
                 }
         }
     }
 
     fun retry() {
         loadPokemon()
+    }
+
+    private fun emitEvent(
+        event: UiEvent
+    ) {
+        viewModelScope.launch {
+            _events.emit(event)
+        }
     }
 }

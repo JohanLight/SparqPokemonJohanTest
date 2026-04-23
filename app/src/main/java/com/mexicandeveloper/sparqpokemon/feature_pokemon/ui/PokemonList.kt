@@ -6,10 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,31 +13,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mexicandeveloper.sparqpokemon.domain.model.Pokemon
-import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvvm.PokemonUIState
+import com.mexicandeveloper.sparqpokemon.ui.InfiniteScrollList
 
 @Composable
 fun PokemonList(
     modifier: Modifier,
-    listState: LazyListState,
-    state: PokemonUIState
+    pokemon: List<Pokemon>,
+    loadingMore: Boolean,
+    onLoadMore: () -> Unit
 ) {
-
-    LazyColumn(
+    InfiniteScrollList(
         modifier = modifier,
-        state = listState
-    ) {
-
-        items(state.pokemon) {
-            PokemonRow(it)
-        }
-
-        if(state.loadingMore) {
-
-            item {
-                CircularProgressIndicator()
-            }
-        }
-    }
+        isLoadingMore = loadingMore,
+        listOfItems = pokemon,
+        content = {
+            PokemonRow(pokemon[it])
+        },
+        onLoadMore = onLoadMore
+    )
 }
 
 @Composable
@@ -57,12 +46,12 @@ fun PokemonRow(
     ) {
 
         AsyncImage(
-             model = pokemon.imageUrl,
-             contentDescription =
-                 pokemon.name,
-             modifier =
-                 Modifier.size(72.dp)
-         )
+            model = pokemon.imageUrl,
+            contentDescription =
+                pokemon.name,
+            modifier =
+                Modifier.size(72.dp)
+        )
 
         Spacer(
             modifier =

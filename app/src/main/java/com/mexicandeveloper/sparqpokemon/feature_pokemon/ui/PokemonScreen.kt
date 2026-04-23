@@ -1,55 +1,60 @@
 package com.mexicandeveloper.sparqpokemon.feature_pokemon.ui
 
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.mexicandeveloper.sparqpokemon.feature_pokemon.PokemonViewModel
+import com.mexicandeveloper.sparqpokemon.feature_pokemon.mvvm.UiEvent
 
 @Composable
 fun PokemonScreen(
-    viewModel: PokemonViewModel = hiltViewModel(),
-    modifier: Modifier
+    viewModel: PokemonViewModel = hiltViewModel(), modifier: Modifier
 ) {
 
-    val state by viewModel.uiState.collectAsState()
-    val listState =
-        rememberLazyListState()
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
+    LaunchedEffect(Unit) {
 
-    LaunchedEffect(
-        listState,
-        state.loadingMore
-    ) {
+        viewModel.events.collect { event ->
 
-        snapshotFlow {
-            listState.layoutInfo
-                .visibleItemsInfo
-                .lastOrNull()
-                ?.index
+            when (event) {
 
-        }.collect { lastIndex ->
+                is UiEvent.ShowError ->
+                    snackbarHostState
+                        .showSnackbar(
+                            event.message
+                        )
 
-            if (
-                lastIndex ==
-                state.pokemon.lastIndex &&
-                !state.loadingMore &&
-                !state.endReached
-            ) {
-                viewModel.loadNextPage()
+                is UiEvent.ShowSnackbar ->
+                    snackbarHostState
+                        .showSnackbar(
+                            event.message
+                        )
             }
         }
     }
+    Scaffold(
+        modifier = modifier, snackbarHost = {
+            SnackbarHost(
+                snackbarHostState
+            )
+        }) {
 
-    PokemonContent(
-        modifier = modifier,
-        state = state,
-        listState = listState,
-        onRetry = {
-            viewModel.retry()
-        }
-    )
+        PokemonContent(
+            modifier = Modifier.padding(it),
+            uiState = uiState,
+            onLoadMore = viewModel::loadNextPage,
+            onRetry = viewModel::retry
+        )
+    }
 }
