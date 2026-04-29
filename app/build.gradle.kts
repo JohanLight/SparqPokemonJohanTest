@@ -26,20 +26,17 @@ android {
     buildTypes {
         debug {
             buildConfigField(
-                "boolean",
-            "LOG_NETWORK",
-            "true")
+                "boolean", "LOG_NETWORK", "true"
+            )
         }
 
         release {
             isMinifyEnabled = false
             buildConfigField(
-                "boolean",
-                "LOG_NETWORK",
-                "false")
+                "boolean", "LOG_NETWORK", "false"
+            )
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
     }
@@ -63,7 +60,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -75,12 +71,13 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
     implementation(libs.gson)
-    implementation(
-        libs.coil.compose
-    )
+    implementation(libs.coil.compose)
     implementation(libs.hilt.android)
-    implementation(
-        libs.androidx.hilt.navigation.compose
-    )
+    implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.ksp)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.mockito.kotlin)
 }
